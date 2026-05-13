@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { fulfillmentStages, workerDashboard } from '@mourned/domain'
+
+function goToOrders() {
+  uni.navigateTo({
+    url: '/pages/orders/index',
+  })
+}
 </script>
 
 <template>
@@ -31,6 +37,8 @@ import { fulfillmentStages, workerDashboard } from '@mourned/domain'
         </van-step>
       </van-steps>
     </view>
+
+    <van-button type="primary" block @click="goToOrders">进入接单与履约</van-button>
   </view>
 </template>
 

@@ -1,13 +1,34 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
-import { serviceCatalog, workerDashboard } from '@mourned/domain'
+import multipart from '@fastify/multipart'
+import fastifyStatic from '@fastify/static'
+import { mkdir } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { env } from './config/env'
 import { checkDatabaseHealth, closeDatabasePool } from './lib/db'
+import { registerOrderRoutes } from './modules/orders/routes'
 
 const server = Fastify({ logger: true })
+const currentDir = path.dirname(fileURLToPath(import.meta.url))
+const uploadDir = path.resolve(currentDir, '../uploads')
+
+await mkdir(uploadDir, { recursive: true })
 
 await server.register(cors, {
   origin: true,
+})
+
+await server.register(multipart, {
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+    files: 1,
+  },
+})
+
+await server.register(fastifyStatic, {
+  root: uploadDir,
+  prefix: '/files/',
 })
 
 server.get('/health', async () => ({
@@ -16,13 +37,7 @@ server.get('/health', async () => ({
   database: await checkDatabaseHealth(),
 }))
 
-server.get('/catalog', async () => ({
-  items: serviceCatalog,
-}))
-
-server.get('/worker/dashboard', async () => ({
-  metrics: workerDashboard,
-}))
+await registerOrderRoutes(server)
 
 server.addHook('onClose', async () => {
   await closeDatabasePool()

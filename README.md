@@ -22,6 +22,7 @@
 - API 使用 MySQL 8。
 - 本地可通过根目录 `docker-compose.yml` 启动开发数据库。
 - 初始化 SQL 位于 `apps/api/sql/init.sql`。
+- 增量迁移位于 `apps/api/sql/migrations`，可通过 `pnpm --filter @mourned/api db:migrate` 执行。
 - API 环境变量示例位于 `apps/api/.env.example`。
 
 ## 说明

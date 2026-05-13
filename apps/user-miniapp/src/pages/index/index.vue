@@ -1,5 +1,17 @@
 <script setup lang="ts">
 import { serviceCatalog, userQuickActions } from '@mourned/domain'
+
+function goToCreateOrder() {
+  uni.navigateTo({
+    url: '/pages/create-order/index',
+  })
+}
+
+function goToOrders() {
+  uni.navigateTo({
+    url: '/pages/orders/index',
+  })
+}
 </script>
 
 <template>
@@ -28,6 +40,14 @@ import { serviceCatalog, userQuickActions } from '@mourned/domain'
       <van-cell-group inset>
         <van-cell v-for="item in userQuickActions" :key="item.title" :title="item.title" :label="item.description" />
       </van-cell-group>
+    </view>
+
+    <view class="section">
+      <text class="section__title">快速操作</text>
+      <view class="action-row">
+        <van-button type="primary" block @click="goToCreateOrder">立即下单</van-button>
+        <van-button plain block @click="goToOrders">查看我的订单</van-button>
+      </view>
     </view>
   </view>
 </template>
@@ -74,6 +94,12 @@ import { serviceCatalog, userQuickActions } from '@mourned/domain'
 .section__title {
   font-size: 30rpx;
   font-weight: 600;
+}
+
+.action-row {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .page :deep(.van-notice-bar) {

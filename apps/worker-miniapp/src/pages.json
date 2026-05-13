@@ -11,6 +11,12 @@
       "style": {
         "navigationBarTitleText": "代办员工作台"
       }
+    },
+    {
+      "path": "pages/orders/index",
+      "style": {
+        "navigationBarTitleText": "接单与履约"
+      }
     }
   ],
   "globalStyle": {

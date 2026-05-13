@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { Calendar, DataAnalysis, Files, UserFilled } from '@element-plus/icons-vue'
 import { adminHighlights, serviceCatalog } from '@mourned/domain'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const focusTracks = [
   '订单调度与客服仲裁',
@@ -26,8 +29,9 @@ const focusTracks = [
           </template>
           <p class="hero-copy">先覆盖订单调度、代办员审核、内容审核和财务结算四条主线。</p>
           <div class="hero-actions">
-            <el-button type="primary">查看订单中心</el-button>
-            <el-button plain>审核纪念馆内容</el-button>
+            <el-button type="primary" @click="router.push('/orders')">查看订单中心</el-button>
+            <el-button plain @click="router.push('/workers')">查看代办员管理</el-button>
+            <el-button plain @click="router.push('/finance')">查看财务结算</el-button>
           </div>
         </el-card>
       </el-col>

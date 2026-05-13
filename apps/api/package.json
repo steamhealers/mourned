@@ -7,10 +7,14 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "db:check": "tsx src/scripts/check-db.ts"
+    "db:check": "tsx src/scripts/check-db.ts",
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "db:seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/static": "^8.3.0",
     "@mourned/domain": "workspace:*",
     "dotenv": "^16.6.1",
     "fastify": "^5.3.3",

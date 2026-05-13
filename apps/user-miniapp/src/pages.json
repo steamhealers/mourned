@@ -11,6 +11,24 @@
       "style": {
         "navigationBarTitleText": "白事服务"
       }
+    },
+    {
+      "path": "pages/create-order/index",
+      "style": {
+        "navigationBarTitleText": "立即下单"
+      }
+    },
+    {
+      "path": "pages/orders/index",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/order-detail/index",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
     }
   ],
   "globalStyle": {

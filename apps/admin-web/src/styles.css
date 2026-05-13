@@ -12,6 +12,63 @@ body {
   margin: 0;
 }
 
+#app {
+  min-height: 100vh;
+}
+
+.admin-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.admin-layout__sidebar {
+  padding: 24px 18px;
+  background: rgba(255, 250, 245, 0.9);
+  border-right: 1px solid rgba(98, 79, 62, 0.08);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.admin-layout__content {
+  min-width: 0;
+}
+
+.brand-block {
+  padding: 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2f241d, #6c5644);
+  color: #f8efe6;
+  margin-bottom: 18px;
+}
+
+.brand-block h1 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.brand-block p {
+  line-height: 1.7;
+}
+
+.brand-block__eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 10px;
+}
+
+.admin-menu {
+  border-right: 0;
+  background: transparent;
+}
+
+.admin-page {
+  padding-top: 24px;
+}
+
 .page-shell {
   min-height: 100vh;
   padding: 32px;
@@ -49,6 +106,66 @@ body {
 .panel-title,
 .metric-card__body {
   display: flex;
+
+.worker-grid {
+  row-gap: 16px;
+}
+
+.worker-card {
+  height: 100%;
+}
+
+.worker-card__header,
+.worker-card__meta,
+.worker-card__tags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.worker-card__header p,
+.worker-card__area {
+  color: #6e6257;
+}
+
+.worker-card__tags {
+  margin: 16px 0;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.worker-card__meta {
+  color: #5d4a3d;
+  font-size: 14px;
+}
+
+.worker-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.worker-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-card .el-card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.finance-page .el-row {
+  margin-bottom: 16px;
+}
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -126,6 +243,15 @@ p {
 }
 
 @media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-layout__sidebar {
+    position: static;
+    height: auto;
+  }
+
   .page-shell {
     padding: 20px;
   }

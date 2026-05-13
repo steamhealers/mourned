@@ -1,0 +1,22 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^van-(.*)": "@vant/weapp/lib/$1/index"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "代办员工作台"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Mourned Worker",
+    "navigationBarBackgroundColor": "#EEE7DE",
+    "backgroundColor": "#F6F1EA"
+  }
+}

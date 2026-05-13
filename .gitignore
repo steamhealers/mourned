@@ -1,0 +1,12 @@
+node_modules/
+.turbo/
+dist/
+.output/
+.DS_Store
+coverage/
+pnpm-lock.yaml
+apps/*/dist/
+apps/*/.output/
+apps/*/node_modules/
+packages/*/dist/
+packages/*/node_modules/

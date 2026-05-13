@@ -1,0 +1,29 @@
+{
+  "name": "@mourned/worker-miniapp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "uni -p mp-weixin",
+    "build": "uni build -p mp-weixin",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "@dcloudio/uni-components": "3.0.0-alpha-3000020210521001",
+    "@vue/reactivity": "3.4.21",
+    "@vue/runtime-core": "3.4.21",
+    "@vue/runtime-dom": "3.4.21",
+    "@vue/shared": "3.4.21",
+    "@vant/weapp": "^1.11.7",
+    "@mourned/domain": "workspace:*",
+    "@dcloudio/uni-app": "2.0.2-5000720260410001",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.16",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5000920260512001",
+    "typescript": "^5.8.3",
+    "vite": "5.2.8",
+    "vue-tsc": "^2.2.10"
+  }
+}

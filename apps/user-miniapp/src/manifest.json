@@ -1,0 +1,13 @@
+{
+  "name": "mourned-user-miniapp",
+  "appid": "__UNI__MOURNED_USER",
+  "description": "白事服务用户端小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    }
+  }
+}

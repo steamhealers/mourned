@@ -73,3 +73,159 @@ ON DUPLICATE KEY UPDATE
   latitude = VALUES(latitude),
   longitude = VALUES(longitude),
   description = VALUES(description);
+
+INSERT INTO dictionaries (id, code, name, scope, description, status)
+VALUES
+  (1, 'service-category', '服务分类树', 'shared', '用于管理服务目录、页面分组和多级枚举映射。', 'active'),
+  (2, 'order-status', '订单状态字典', 'shared', '用于后台枚举、状态文案与流程提示。', 'active'),
+  (3, 'fulfillment-stage', '履约节点字典', 'worker-miniapp', '用于代办员端配置履约阶段展示。', 'active')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  scope = VALUES(scope),
+  description = VALUES(description),
+  status = VALUES(status);
+
+INSERT INTO dictionary_items (id, dictionary_id, parent_id, item_key, label, value, sort_order, is_enabled, extra_json)
+VALUES
+  (1, 1, NULL, 'onsite-service', '现场服务', 'onsite-service', 10, 1, JSON_OBJECT('color', '#8a6a4d')),
+  (2, 1, 1, 'memorial-cleaning', '代祭扫与墓位清洁', 'memorial-cleaning', 10, 1, JSON_OBJECT('tradeMode', 'direct')),
+  (3, 1, 1, 'errand-support', '白事跑腿代办', 'errand-support', 20, 1, JSON_OBJECT('tradeMode', 'direct')),
+  (4, 1, NULL, 'consulting-service', '咨询服务', 'consulting-service', 20, 1, JSON_OBJECT('color', '#53706f')),
+  (5, 1, 4, 'funeral-consulting', '白事咨询与套餐报价', 'funeral-consulting', 10, 1, JSON_OBJECT('tradeMode', 'quote')),
+  (6, 2, NULL, 'pending_quote', '待报价', 'pending_quote', 10, 1, NULL),
+  (7, 2, NULL, 'pending_payment', '待支付', 'pending_payment', 20, 1, NULL),
+  (8, 2, NULL, 'pending_dispatch', '待派单', 'pending_dispatch', 30, 1, NULL),
+  (9, 2, NULL, 'in_service', '服务中', 'in_service', 40, 1, NULL),
+  (10, 2, NULL, 'pending_confirm', '待确认', 'pending_confirm', 50, 1, NULL),
+  (11, 2, NULL, 'completed', '已完成', 'completed', 60, 1, NULL),
+  (12, 2, NULL, 'refund_in_progress', '售后中', 'refund_in_progress', 70, 1, NULL),
+  (13, 2, NULL, 'refunded', '已退款', 'refunded', 80, 1, NULL),
+  (14, 2, NULL, 'closed', '已关闭', 'closed', 90, 1, NULL),
+  (15, 3, NULL, 'arrival', '到场打卡', 'arrival', 10, 1, JSON_OBJECT('description', '记录时间、地点和首张现场照片，作为履约起点。')),
+  (16, 3, NULL, 'preparation', '供品摆放', 'preparation', 20, 1, JSON_OBJECT('description', '上传供品摆放前后照片，并记录特殊备注。')),
+  (17, 3, NULL, 'service', '服务执行', 'service', 30, 1, JSON_OBJECT('description', '记录清扫、祭拜、陪同或跑腿完成的关键节点。')),
+  (18, 3, NULL, 'completion', '完结提交', 'completion', 40, 1, JSON_OBJECT('description', '提交整单说明，等待用户确认和后台结算。'))
+ON DUPLICATE KEY UPDATE
+  parent_id = VALUES(parent_id),
+  label = VALUES(label),
+  value = VALUES(value),
+  sort_order = VALUES(sort_order),
+  is_enabled = VALUES(is_enabled),
+  extra_json = VALUES(extra_json);
+
+INSERT INTO system_settings (id, scope, group_code, setting_key, name, value_type, value_text, description, is_public)
+VALUES
+  (1, 'user-miniapp', 'homepage', 'banner_enabled', '用户端首页 banner 开关', 'boolean', 'true', '控制用户端首页活动 banner 是否显示。', 1),
+  (2, 'user-miniapp', 'homepage', 'notice_text', '用户端首页公告', 'string', '当前演示接入 Vant Weapp，首期默认开放代祭扫、跑腿代办与咨询报价。', '控制用户端首页公告文案。', 1),
+  (3, 'user-miniapp', 'homepage', 'quick_actions', '用户端首页能力区块', 'json', '[{"title":"快速下单","description":"为代祭扫、跑腿代办建立标准化交易入口。"},{"title":"询价与咨询","description":"对白事协办和非标需求生成待确认报价。"},{"title":"查看履约凭证","description":"在订单中查看到场、摆放、清洁、祭扫完成等节点记录。"}]', '控制用户端首页能力区块。', 1),
+  (4, 'worker-miniapp', 'location', 'strict_check', '代办员定位严格校验', 'boolean', 'false', '控制到场打卡是否强制校验定位半径。', 0),
+  (5, 'worker-miniapp', 'dashboard', 'notice_text', '代办员端工作台公告', 'string', '代办员端已接入 Vant Weapp，后续将补充接单、打卡、异常上报等表单流。', '控制代办员首页公告文案。', 1),
+  (6, 'worker-miniapp', 'dashboard', 'metrics', '代办员看板指标', 'json', '[{"label":"待接单","value":"06"},{"label":"今日任务","value":"04"},{"label":"待上传凭证","value":"03"},{"label":"本周收入","value":"¥2,640"}]', '控制代办员首页看板指标。', 1),
+  (7, 'admin-web', 'dashboard', 'refresh_seconds', '后台看板刷新间隔', 'number', '30', '后台概览页自动刷新秒数。', 0),
+  (8, 'admin-web', 'dashboard', 'highlights', '后台概览指标', 'json', '[{"label":"今日新增订单","value":"18"},{"label":"待审核代办员","value":"7"},{"label":"待处理售后","value":"3"},{"label":"纪念馆待审核内容","value":"12"}]', '控制后台概览核心指标展示。', 1),
+  (9, 'admin-web', 'dashboard', 'focus_tracks', '后台重点事项', 'json', '["订单调度与客服仲裁","代办员审核与分区管理","纪念馆内容审核","财务结算与退款处理"]', '控制后台概览重点事项列表。', 1),
+  (10, 'api', 'upload', 'image_limit_mb', '上传图片大小限制', 'number', '10', '上传接口允许的单文件大小限制。', 0)
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  value_type = VALUES(value_type),
+  value_text = VALUES(value_text),
+  description = VALUES(description),
+  is_public = VALUES(is_public);
+
+INSERT INTO admin_menus (id, parent_id, menu_type, menu_key, name, route_path, icon, permission_code, sort_order, is_enabled)
+VALUES
+  (1, NULL, 'menu', 'dashboard', '概览', '/', 'DataBoard', 'dashboard:view', 10, 1),
+  (2, NULL, 'menu', 'services', '服务管理', '/services', 'List', 'services:view', 20, 1),
+  (3, NULL, 'menu', 'orders', '订单管理', '/orders', 'Suitcase', 'orders:view', 30, 1),
+  (4, NULL, 'menu', 'workers', '代办员管理', '/workers', 'UserFilled', 'workers:view', 40, 1),
+  (5, NULL, 'menu', 'finance', '财务结算', '/finance', 'Coin', 'finance:view', 50, 1),
+  (6, NULL, 'menu', 'dictionaries', '字典管理', '/dictionaries', 'CollectionTag', 'dictionaries:view', 60, 1),
+  (7, NULL, 'menu', 'settings', '参数设置', '/settings', 'Setting', 'settings:view', 70, 1),
+  (8, NULL, 'menu', 'menu-management', '菜单管理', '/menus', 'Menu', 'access.menus:view', 80, 1),
+  (9, NULL, 'menu', 'role-management', '角色权限', '/roles', 'Lock', 'access.roles:view', 90, 1),
+  (10, NULL, 'menu', 'admin-users', '用户管理', '/admin-users', 'Avatar', 'access.users:view', 100, 1),
+  (11, 1, 'button', 'dashboard-jump-orders', '概览跳转订单', NULL, NULL, 'dashboard.jump.orders', 110, 1),
+  (12, 1, 'button', 'dashboard-jump-workers', '概览跳转代办员', NULL, NULL, 'dashboard.jump.workers', 120, 1),
+  (13, 1, 'button', 'dashboard-jump-finance', '概览跳转财务', NULL, NULL, 'dashboard.jump.finance', 130, 1),
+  (14, 3, 'button', 'orders-open-detail', '查看订单详情', NULL, NULL, 'orders.detail', 140, 1),
+  (15, 3, 'button', 'orders-submit-quote', '提交报价', NULL, NULL, 'orders.quote', 150, 1),
+  (16, 3, 'button', 'orders-dispatch', '派单', NULL, NULL, 'orders.dispatch', 160, 1),
+  (17, 3, 'button', 'orders-payment-callback', '模拟支付回调', NULL, NULL, 'orders.payment-callback', 170, 1),
+  (18, 3, 'button', 'orders-refund-review', '退款审核', NULL, NULL, 'orders.refund-review', 180, 1),
+  (19, 3, 'button', 'orders-force-complete', '强制完结', NULL, NULL, 'orders.force-complete', 190, 1),
+  (42, 4, 'button', 'workers-create', '新建代办员', NULL, NULL, 'workers.create', 195, 1),
+  (20, 4, 'button', 'workers-approve', '代办员通过审核', NULL, NULL, 'workers.approve', 200, 1),
+  (21, 4, 'button', 'workers-pending', '代办员转待审核', NULL, NULL, 'workers.pending', 210, 1),
+  (22, 4, 'button', 'workers-freeze', '代办员冻结', NULL, NULL, 'workers.freeze', 220, 1),
+  (23, 4, 'button', 'workers-settlement', '生成结算', NULL, NULL, 'workers.settlement', 230, 1),
+  (24, 6, 'button', 'dictionaries-create', '新建字典', NULL, NULL, 'dictionaries.create', 240, 1),
+  (25, 6, 'button', 'dictionaries-edit', '编辑字典', NULL, NULL, 'dictionaries.edit', 250, 1),
+  (26, 6, 'button', 'dictionaries-delete', '删除字典', NULL, NULL, 'dictionaries.delete', 260, 1),
+  (27, 6, 'button', 'dictionaries-item-create', '新增字典节点', NULL, NULL, 'dictionaries.item.create', 270, 1),
+  (28, 6, 'button', 'dictionaries-item-edit', '编辑字典节点', NULL, NULL, 'dictionaries.item.edit', 280, 1),
+  (29, 6, 'button', 'dictionaries-item-delete', '删除字典节点', NULL, NULL, 'dictionaries.item.delete', 290, 1),
+  (30, 7, 'button', 'settings-create', '新建参数', NULL, NULL, 'settings.create', 300, 1),
+  (31, 7, 'button', 'settings-edit', '编辑参数', NULL, NULL, 'settings.edit', 310, 1),
+  (32, 7, 'button', 'settings-delete', '删除参数', NULL, NULL, 'settings.delete', 320, 1),
+  (33, 8, 'button', 'menus-create', '新建菜单', NULL, NULL, 'access.menus.create', 330, 1),
+  (34, 8, 'button', 'menus-edit', '编辑菜单', NULL, NULL, 'access.menus.edit', 340, 1),
+  (35, 8, 'button', 'menus-delete', '删除菜单', NULL, NULL, 'access.menus.delete', 350, 1),
+  (36, 9, 'button', 'roles-create', '新建角色', NULL, NULL, 'access.roles.create', 360, 1),
+  (37, 9, 'button', 'roles-edit', '编辑角色', NULL, NULL, 'access.roles.edit', 370, 1),
+  (38, 9, 'button', 'roles-delete', '删除角色', NULL, NULL, 'access.roles.delete', 380, 1),
+  (39, 10, 'button', 'users-create', '新建用户', NULL, NULL, 'access.users.create', 390, 1),
+  (40, 10, 'button', 'users-edit', '编辑用户', NULL, NULL, 'access.users.edit', 400, 1),
+  (41, 10, 'button', 'users-delete', '删除用户', NULL, NULL, 'access.users.delete', 410, 1)
+ON DUPLICATE KEY UPDATE
+  parent_id = VALUES(parent_id),
+  menu_type = VALUES(menu_type),
+  name = VALUES(name),
+  route_path = VALUES(route_path),
+  icon = VALUES(icon),
+  permission_code = VALUES(permission_code),
+  sort_order = VALUES(sort_order),
+  is_enabled = VALUES(is_enabled);
+
+INSERT INTO admin_roles (id, code, name, description, status)
+VALUES
+  (1, 'super-admin', '超级管理员', '拥有后台全部菜单与操作权限。', 'active'),
+  (2, 'ops-admin', '运营管理员', '负责订单、服务、代办员及字典参数维护。', 'active'),
+  (3, 'finance-admin', '财务管理员', '负责财务与退款结算相关操作。', 'active')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  description = VALUES(description),
+  status = VALUES(status);
+
+INSERT INTO admin_users (id, username, display_name, auth_mode, password_hint, status)
+VALUES
+  (1, 'admin-demo-001', '演示管理员', 'demo', 'demo-only', 'active'),
+  (2, 'ops-demo-001', '运营主管', 'password', 'ops-123456', 'active'),
+  (3, 'finance-demo-001', '财务主管', 'password', 'finance-123456', 'active')
+ON DUPLICATE KEY UPDATE
+  display_name = VALUES(display_name),
+  auth_mode = VALUES(auth_mode),
+  password_hint = VALUES(password_hint),
+  status = VALUES(status);
+
+INSERT INTO admin_role_menu_permissions (role_id, menu_id)
+VALUES
+  (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+  (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19),
+  (1, 20), (1, 21), (1, 22), (1, 23), (1, 24), (1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 42),
+  (1, 30), (1, 31), (1, 32), (1, 33), (1, 34), (1, 35), (1, 36), (1, 37), (1, 38), (1, 39), (1, 40), (1, 41),
+  (2, 1), (2, 2), (2, 3), (2, 4), (2, 6), (2, 7),
+  (2, 11), (2, 12), (2, 14), (2, 15), (2, 16), (2, 18), (2, 19),
+  (2, 20), (2, 21), (2, 22), (2, 23), (2, 42),
+  (2, 24), (2, 25), (2, 27), (2, 28), (2, 30), (2, 31),
+  (3, 1), (3, 3), (3, 5),
+  (3, 13), (3, 14), (3, 17), (3, 18), (3, 19)
+ON DUPLICATE KEY UPDATE
+  menu_id = VALUES(menu_id);
+
+INSERT INTO admin_user_roles (user_id, role_id)
+VALUES
+  (1, 1),
+  (2, 2),
+  (3, 3)
+ON DUPLICATE KEY UPDATE
+  role_id = VALUES(role_id);

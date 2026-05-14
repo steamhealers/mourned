@@ -1,5 +1,82 @@
+/// <reference path="./types/sm-crypto.d.ts" />
+
+import CryptoJS from 'crypto-js'
+import { sm4 } from 'sm-crypto'
+
 export type TradeMode = 'direct' | 'quote' | 'review'
 export type DeliveryMode = 'onsite' | 'remote' | 'hybrid'
+export type ClientType = 'user-miniapp' | 'worker-miniapp' | 'admin-web'
+
+const sensitiveFieldNames = new Set([
+  'phone',
+  'realName',
+  'contactName',
+  'contactPhone',
+  'workerName',
+  'displayName',
+  'password',
+])
+export const orderStatuses = [
+  'pending_quote',
+  'pending_payment',
+  'pending_dispatch',
+  'in_service',
+  'pending_confirm',
+  'completed',
+  'refund_in_progress',
+  'refunded',
+  'closed',
+] as const
+
+export type OrderStatus = (typeof orderStatuses)[number]
+
+export const refundStatuses = ['none', 'requested', 'approved', 'rejected', 'refunded'] as const
+
+export type RefundStatus = (typeof refundStatuses)[number]
+
+export const orderStatusLabels: Record<OrderStatus, string> = {
+  pending_quote: '待报价',
+  pending_payment: '待支付',
+  pending_dispatch: '待派单',
+  in_service: '服务中',
+  pending_confirm: '待确认',
+  completed: '已完成',
+  refund_in_progress: '售后中',
+  refunded: '已退款',
+  closed: '已关闭',
+}
+
+export const refundStatusLabels: Record<RefundStatus, string> = {
+  none: '无售后',
+  requested: '已申请',
+  approved: '已通过',
+  rejected: '已驳回',
+  refunded: '已退款',
+}
+
+/**
+ * 获取订单状态对应的中文文案。
+ *
+ * @param {OrderStatus} status 订单状态值。
+ * @returns {string} 对应的中文标签。
+ */
+export function getOrderStatusLabel(status: OrderStatus) {
+  return orderStatusLabels[status]
+}
+
+/**
+ * 获取退款状态对应的中文文案；空值时回退到“无售后”。
+ *
+ * @param {RefundStatus | null | undefined} status 退款状态值。
+ * @returns {string} 对应的中文标签。
+ */
+export function getRefundStatusLabel(status: RefundStatus | null | undefined) {
+  if (!status) {
+    return refundStatusLabels.none
+  }
+
+  return refundStatusLabels[status]
+}
 
 export interface ServiceItem {
   code: string
@@ -133,3 +210,168 @@ export const adminHighlights: DashboardMetric[] = [
     value: '12',
   },
 ]
+
+/**
+ * 归一化签名原文中的值，确保对象键顺序、日期和空值在三端与服务端之间保持一致。
+ *
+ * @param {unknown} value 待归一化的值。
+ * @returns {unknown} 适合参与签名序列化的稳定值。
+ */
+function normalizeSignatureValue(value: unknown): unknown {
+  if (value === undefined) {
+    return null
+  }
+
+  if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => normalizeSignatureValue(item))
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  if (typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        result[key] = normalizeSignatureValue((value as Record<string, unknown>)[key])
+        return result
+      }, {})
+  }
+
+  return String(value)
+}
+
+/**
+ * 构建参与请求签名的标准载荷。
+ *
+ * @param {{ clientType: ClientType, timestamp: string | number, data: unknown }} input 签名输入。
+ * @returns {{ clientType: ClientType, timestamp: string, data: unknown }} 归一化后的签名载荷。
+ */
+export function buildRequestSignaturePayload(input: {
+  clientType: ClientType
+  timestamp: string | number
+  data: unknown
+}) {
+  return {
+    clientType: input.clientType,
+    timestamp: String(input.timestamp),
+    data: normalizeSignatureValue(input.data),
+  }
+}
+
+/**
+ * 基于标准签名载荷生成 HMAC-MD5 请求签名。
+ *
+ * @param {{ clientType: ClientType, timestamp: string | number, data: unknown, secret: string }} input 签名输入与密钥。
+ * @returns {string} 十六进制签名字符串。
+ */
+export function createRequestSignature(input: {
+  clientType: ClientType
+  timestamp: string | number
+  data: unknown
+  secret: string
+}) {
+  const payload = buildRequestSignaturePayload({
+    clientType: input.clientType,
+    timestamp: input.timestamp,
+    data: input.data,
+  })
+
+  return CryptoJS.HmacMD5(JSON.stringify(payload), input.secret).toString()
+}
+
+/**
+ * 递归遍历对象、数组与字符串字段，并只对敏感字段名执行传入的转换器。
+ *
+ * @param {unknown} value 待处理的值。
+ * @param {string} secret 传给转换器的密钥。
+ * @param {(input: string, secret: string) => string} transformer 字符串转换函数。
+ * @param {string} [fieldName] 当前字段名。
+ * @returns {unknown} 处理后的值。
+ */
+function transformSensitiveFields(
+  value: unknown,
+  secret: string,
+  transformer: (input: string, secret: string) => string,
+  fieldName?: string,
+): unknown {
+  if (value === null || value === undefined) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    return fieldName && sensitiveFieldNames.has(fieldName) ? transformer(value, secret) : value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => transformSensitiveFields(item, secret, transformer, fieldName))
+  }
+
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>((result, [key, currentValue]) => {
+      result[key] = transformSensitiveFields(currentValue, secret, transformer, key)
+      return result
+    }, {})
+  }
+
+  return value
+}
+
+/**
+ * 对单个敏感字符串执行 SM4 加密；已经带前缀的值会直接跳过。
+ *
+ * @param {string} value 待加密的明文。
+ * @param {string} secret SM4 密钥。
+ * @returns {string} 带 sm4: 前缀的密文，或原始值。
+ */
+export function encryptSensitiveText(value: string, secret: string) {
+  if (!value || value.startsWith('sm4:')) {
+    return value
+  }
+
+  return `sm4:${sm4.encrypt(value, secret, { output: 'string' })}`
+}
+
+/**
+ * 对单个敏感字符串执行 SM4 解密；非 sm4: 前缀的值会直接返回。
+ *
+ * @param {string} value 待解密的密文。
+ * @param {string} secret SM4 密钥。
+ * @returns {string} 解密后的明文，或原始值。
+ */
+export function decryptSensitiveText(value: string, secret: string) {
+  if (!value || !value.startsWith('sm4:')) {
+    return value
+  }
+
+  return sm4.decrypt(value.slice(4), secret, { output: 'string' }) as string
+}
+
+/**
+ * 递归加密对象中的敏感字段。
+ *
+ * @template T 输入数据类型。
+ * @param {T} value 待加密的数据。
+ * @param {string} secret SM4 密钥。
+ * @returns {T} 处理后的数据。
+ */
+export function encryptSensitiveFields<T>(value: T, secret: string): T {
+  return transformSensitiveFields(value, secret, encryptSensitiveText) as T
+}
+
+/**
+ * 递归解密对象中的敏感字段。
+ *
+ * @template T 输入数据类型。
+ * @param {T} value 待解密的数据。
+ * @param {string} secret SM4 密钥。
+ * @returns {T} 处理后的数据。
+ */
+export function decryptSensitiveFields<T>(value: T, secret: string): T {
+  return transformSensitiveFields(value, secret, decryptSensitiveText) as T
+}

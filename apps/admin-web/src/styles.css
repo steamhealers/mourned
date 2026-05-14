@@ -52,6 +52,16 @@ body {
   line-height: 1.7;
 }
 
+.brand-block__session {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: rgba(248, 239, 230, 0.9);
+  font-size: 13px;
+}
+
 .brand-block__eyebrow {
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -63,6 +73,12 @@ body {
 .admin-menu {
   border-right: 0;
   background: transparent;
+}
+
+.admin-menu .el-sub-menu__title,
+.admin-menu .el-menu-item {
+  border-radius: 14px;
+  margin-bottom: 6px;
 }
 
 .admin-page {
@@ -255,4 +271,36 @@ p {
   .page-shell {
     padding: 20px;
   }
+}
+
+.dictionary-layout .el-col {
+  margin-bottom: 16px;
+}
+
+.dictionary-tree-card__desc {
+  margin-bottom: 16px;
+  color: #6e6257;
+}
+
+.setting-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.permission-tree {
+  width: 100%;
+  border: 1px solid rgba(98, 79, 62, 0.08);
+  border-radius: 16px;
+  padding: 12px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.tag-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }

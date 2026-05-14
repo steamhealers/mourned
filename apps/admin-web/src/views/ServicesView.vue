@@ -5,6 +5,11 @@ import { fetchServices, type ServiceItemDto } from '../lib/api'
 const loading = ref(false)
 const items = ref<ServiceItemDto[]>([])
 
+/**
+ * 拉取服务目录列表，并维护页面级 loading 状态。
+ *
+ * @returns {Promise<void>} 数据加载完成后的 Promise。
+ */
 async function loadServices() {
   loading.value = true
 
@@ -17,7 +22,14 @@ async function loadServices() {
   }
 }
 
-onMounted(loadServices)
+/**
+ * 页面挂载后初始化服务目录列表。
+ *
+ * @returns {void} 无返回值。
+ */
+onMounted(() => {
+  void loadServices()
+})
 </script>
 
 <template>

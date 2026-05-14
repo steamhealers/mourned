@@ -1,0 +1,56 @@
+CREATE TABLE IF NOT EXISTS admin_menus (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  parent_id BIGINT UNSIGNED NULL,
+  menu_type ENUM('catalog', 'menu', 'button') NOT NULL DEFAULT 'menu',
+  menu_key VARCHAR(64) NOT NULL UNIQUE,
+  name VARCHAR(128) NOT NULL,
+  route_path VARCHAR(255) NULL,
+  icon VARCHAR(64) NULL,
+  permission_code VARCHAR(128) NULL,
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_admin_menus_parent FOREIGN KEY (parent_id) REFERENCES admin_menus(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS admin_roles (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  code VARCHAR(64) NOT NULL UNIQUE,
+  name VARCHAR(128) NOT NULL,
+  description VARCHAR(255) NULL,
+  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  display_name VARCHAR(128) NOT NULL,
+  auth_mode ENUM('demo', 'password', 'wechat-work') NOT NULL DEFAULT 'demo',
+  password_hint VARCHAR(255) NULL,
+  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS admin_role_menu_permissions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  role_id BIGINT UNSIGNED NOT NULL,
+  menu_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_role_menu_permission (role_id, menu_id),
+  CONSTRAINT fk_admin_role_permissions_role FOREIGN KEY (role_id) REFERENCES admin_roles(id) ON DELETE CASCADE,
+  CONSTRAINT fk_admin_role_permissions_menu FOREIGN KEY (menu_id) REFERENCES admin_menus(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS admin_user_roles (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role_id BIGINT UNSIGNED NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_admin_user_role (user_id, role_id),
+  CONSTRAINT fk_admin_user_roles_user FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_admin_user_roles_role FOREIGN KEY (role_id) REFERENCES admin_roles(id) ON DELETE CASCADE
+);

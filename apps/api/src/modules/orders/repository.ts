@@ -121,6 +121,11 @@ interface SettlementRow extends RowDataPacket {
   created_at: string
 }
 
+/**
+ * 查询当前启用的服务目录。
+ *
+ * @returns {Promise<Array<{ id: number, code: string, name: string, tradeMode: ServiceRow['trade_mode'], deliveryMode: ServiceRow['delivery_mode'], description: string }>>} 服务列表。
+ */
 export async function listServices() {
   const [rows] = await pool.query<ServiceRow[]>(`
     SELECT id, code, name, trade_mode, delivery_mode, description
@@ -139,6 +144,13 @@ export async function listServices() {
   }))
 }
 
+/**
+ * 在事务内确保用户存在；存在则补齐实名信息，不存在则创建新用户。
+ *
+ * @param {PoolConnection} connection 当前事务连接。
+ * @param {CreateOrderInput | CreateWorkerInput} input 包含 openId 与实名字段的输入。
+ * @returns {Promise<number>} 用户 id。
+ */
 async function ensureUser(connection: PoolConnection, input: CreateOrderInput | CreateWorkerInput) {
   const [existingUsers] = await connection.query<RowDataPacket[]>(
     'SELECT id FROM users WHERE open_id = :openId LIMIT 1',
@@ -180,6 +192,13 @@ async function ensureUser(connection: PoolConnection, input: CreateOrderInput | 
   return Number(result.insertId)
 }
 
+/**
+ * 按服务编码查询服务项。
+ *
+ * @param {PoolConnection} connection 当前事务连接。
+ * @param {string} serviceCode 服务编码。
+ * @returns {Promise<ServiceRow | null>} 命中的服务项或空值。
+ */
 async function getServiceByCode(connection: PoolConnection, serviceCode: string) {
   const [services] = await connection.query<ServiceRow[]>(
     'SELECT id, code, name, trade_mode, delivery_mode, description FROM service_items WHERE code = :serviceCode LIMIT 1',
@@ -189,10 +208,21 @@ async function getServiceByCode(connection: PoolConnection, serviceCode: string)
   return services[0] ?? null
 }
 
+/**
+ * 生成订单号。
+ *
+ * @returns {string} 订单号。
+ */
 function buildOrderNo() {
   return `MO${Date.now()}`
 }
 
+/**
+ * 创建订单，并在需要时自动补齐用户档案。
+ *
+ * @param {CreateOrderInput} input 下单输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 新建后的订单详情。
+ */
 export async function createOrder(input: CreateOrderInput) {
   const connection = await pool.getConnection()
 
@@ -266,6 +296,12 @@ export async function createOrder(input: CreateOrderInput) {
   }
 }
 
+/**
+ * 根据查询条件获取订单列表。
+ *
+ * @param {OrderListQuery} query 列表查询条件。
+ * @returns {Promise<Array<ReturnType<typeof mapOrderSummary>>>} 订单摘要列表。
+ */
 export async function listOrders(query: OrderListQuery) {
   const conditions: string[] = []
   const params: Record<string, string | number> = {}
@@ -325,6 +361,12 @@ export async function listOrders(query: OrderListQuery) {
   return rows.map(mapOrderSummary)
 }
 
+/**
+ * 获取单个订单的详情、报价记录与履约记录。
+ *
+ * @param {number} orderId 订单 id。
+ * @returns {Promise<(ReturnType<typeof mapOrderSummary> & { quotes: Array<{ id: number, quotedBy: string, amount: number, detail: Array<{ label: string, value: string }>, expiresAt: string, status: string, createdAt: string }>, fulfillmentRecords: Array<{ id: number, stageCode: string, mediaUrl: string | null, latitude: number | null, longitude: number | null, description: string | null, createdAt: string }> }) | null>} 订单详情或空值。
+ */
 export async function getOrderDetail(orderId: number) {
   const [orders] = await pool.query<OrderRow[]>(
     `
@@ -410,6 +452,13 @@ export async function getOrderDetail(orderId: number) {
   }
 }
 
+/**
+ * 为订单创建报价，并将订单状态推进到待支付。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {CreateQuoteInput} input 报价输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function createQuote(orderId: number, input: CreateQuoteInput) {
   await pool.query<ResultSetHeader>(
     `
@@ -441,6 +490,13 @@ export async function createQuote(orderId: number, input: CreateQuoteInput) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 接受指定报价，并拒绝同单其他报价。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {AcceptQuoteInput} input 报价接受输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function acceptQuote(orderId: number, input: AcceptQuoteInput) {
   await pool.query(
     `
@@ -466,6 +522,13 @@ export async function acceptQuote(orderId: number, input: AcceptQuoteInput) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 手动标记订单已支付，并写入支付记录。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {MarkPaidInput} input 支付输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function markOrderPaid(orderId: number, input: MarkPaidInput) {
   const order = await getOrderDetail(orderId)
 
@@ -502,6 +565,13 @@ export async function markOrderPaid(orderId: number, input: MarkPaidInput) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 处理支付回调，并写入支付流水后推进订单状态。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {PaymentCallbackInput} input 回调输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function handlePaymentCallback(orderId: number, input: PaymentCallbackInput) {
   const order = await getOrderDetail(orderId)
 
@@ -539,6 +609,13 @@ export async function handlePaymentCallback(orderId: number, input: PaymentCallb
   return getOrderDetail(orderId)
 }
 
+/**
+ * 为订单指派代办员并将状态推进到服务中。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {AcceptOrderInput} input 派单或接单输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function acceptOrder(orderId: number, input: AcceptOrderInput) {
   await pool.query(
     `
@@ -556,6 +633,13 @@ export async function acceptOrder(orderId: number, input: AcceptOrderInput) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 新增履约记录，并根据阶段推进订单状态。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {CreateFulfillmentInput} input 履约输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function createFulfillmentRecord(orderId: number, input: CreateFulfillmentInput) {
   await pool.query<ResultSetHeader>(
     `
@@ -582,6 +666,12 @@ export async function createFulfillmentRecord(orderId: number, input: CreateFulf
   return getOrderDetail(orderId)
 }
 
+/**
+ * 将订单标记为已完成，并同步累计代办员完成单量。
+ *
+ * @param {number} orderId 订单 id。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function completeOrder(orderId: number) {
   await pool.query(
     `
@@ -605,6 +695,13 @@ export async function completeOrder(orderId: number) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 提交退款申请，并在订单备注中追加申请说明。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {RequestRefundInput} input 退款申请输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function requestRefund(orderId: number, input: RequestRefundInput) {
   const refundNoteSegments = ['退款申请: ', input.reason]
 
@@ -641,6 +738,13 @@ export async function requestRefund(orderId: number, input: RequestRefundInput) 
   return getOrderDetail(orderId)
 }
 
+/**
+ * 审核退款申请，并同步更新订单状态与备注。
+ *
+ * @param {number} orderId 订单 id。
+ * @param {ReviewRefundInput} input 退款审核输入。
+ * @returns {Promise<Awaited<ReturnType<typeof getOrderDetail>>>} 更新后的订单详情。
+ */
 export async function reviewRefund(orderId: number, input: ReviewRefundInput) {
   const reviewStatus = input.approved ? 'refunded' : 'rejected'
   const reviewNote = input.note ?? (input.approved ? '已同意退款' : '已驳回退款')
@@ -672,7 +776,7 @@ export async function reviewRefund(orderId: number, input: ReviewRefundInput) {
     {
       orderId,
       refundStatus: reviewStatus,
-      status: input.approved ? 'refunded' : 'pending_dispatch',
+      status: input.approved ? 'refunded' : 'closed',
       note: reviewNote,
     },
   )
@@ -680,6 +784,13 @@ export async function reviewRefund(orderId: number, input: ReviewRefundInput) {
   return getOrderDetail(orderId)
 }
 
+/**
+ * 更新代办员审核状态。
+ *
+ * @param {number} workerProfileId 代办员档案 id。
+ * @param {ReviewWorkerInput} input 审核输入。
+ * @returns {Promise<void>} 更新完成后的 Promise。
+ */
 export async function reviewWorker(workerProfileId: number, input: ReviewWorkerInput) {
   await pool.query(
     `
@@ -694,6 +805,13 @@ export async function reviewWorker(workerProfileId: number, input: ReviewWorkerI
   )
 }
 
+/**
+ * 生成或更新指定代办员的结算单。
+ *
+ * @param {number} workerProfileId 代办员档案 id。
+ * @param {CreateSettlementInput} input 结算输入。
+ * @returns {Promise<void>} 处理完成后的 Promise。
+ */
 export async function createWorkerSettlement(workerProfileId: number, input: CreateSettlementInput) {
   const [totals] = await pool.query<Array<RowDataPacket & { gross_amount: string | null }>>(
     `
@@ -729,6 +847,11 @@ export async function createWorkerSettlement(workerProfileId: number, input: Cre
   )
 }
 
+/**
+ * 汇总支付、退款与结算数据，生成财务概览。
+ *
+ * @returns {Promise<{ metrics: { paidCount: number, pendingRefundCount: number, pendingSettlementCount: number, paidAmountTotal: number }, paymentRecords: Array<{ id: number, orderId: number, orderNo: string, channel: string, transactionNo: string, amount: number, status: PaymentRecordRow['status'], paidAt: string, createdAt: string }>, refundRecords: Array<{ id: number, orderId: number, orderNo: string, reason: string, evidenceUrls: string[], status: RefundRecordRow['status'], reviewNote: string | null, createdAt: string, updatedAt: string }>, settlements: Array<{ id: number, workerProfileId: number, workerName: string, periodLabel: string, grossAmount: number, commissionRate: number, netAmount: number, status: SettlementRow['status'], note: string | null, createdAt: string }> }>} 财务概览对象。
+ */
 export async function getFinanceOverview() {
   const [paymentRecords] = await pool.query<PaymentRecordRow[]>(
     `
@@ -822,6 +945,12 @@ export async function getFinanceOverview() {
   }
 }
 
+/**
+ * 根据查询条件获取代办员列表。
+ *
+ * @param {WorkerListQuery} query 列表查询条件。
+ * @returns {Promise<Array<{ id: number, userId: number, realName: string, phone: string | null, serviceArea: string, serviceTags: string[], rating: number, completedOrderCount: number, status: WorkerRow['status'], createdAt: string, updatedAt: string }>>} 代办员列表。
+ */
 export async function listWorkers(query: WorkerListQuery) {
   const [rows] = await pool.query<WorkerRow[]>(
     `
@@ -849,6 +978,12 @@ export async function listWorkers(query: WorkerListQuery) {
   }))
 }
 
+/**
+ * 创建代办员档案；若对应用户已存在档案，则直接更新并启用。
+ *
+ * @param {CreateWorkerInput} input 代办员创建输入。
+ * @returns {Promise<number>} 代办员档案 id。
+ */
 export async function createWorker(input: CreateWorkerInput) {
   const connection = await pool.getConnection()
 
@@ -905,6 +1040,12 @@ export async function createWorker(input: CreateWorkerInput) {
   }
 }
 
+/**
+ * 将数据库订单行映射为前端可消费的订单摘要对象。
+ *
+ * @param {OrderRow} order 数据库订单行。
+ * @returns {{ id: number, orderNo: string, userId: number, userOpenId: string, workerProfileId: number | null, workerName: string | null, serviceItemId: number, serviceCode: string, serviceName: string, tradeMode: string, city: string, district: string, contactName: string, contactPhone: string, scheduledAt: string, amount: number, status: string, refundStatus: string, notes: string | null, createdAt: string, updatedAt: string }} 订单摘要对象。
+ */
 function mapOrderSummary(order: OrderRow) {
   return {
     id: order.id,
@@ -931,6 +1072,11 @@ function mapOrderSummary(order: OrderRow) {
   }
 }
 
+/**
+ * 生成支付流水号。
+ *
+ * @returns {string} 支付流水号。
+ */
 function buildPaymentNo() {
   return `PAY${Date.now()}`
 }

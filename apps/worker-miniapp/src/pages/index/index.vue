@@ -1,6 +1,84 @@
 <script setup lang="ts">
-import { fulfillmentStages, workerDashboard } from '@mourned/domain'
+import { onMounted, ref } from 'vue'
+import { fetchPublicDictionary, fetchPublicSystemSettings, type PublicDictionaryItemDto, type PublicSystemSettingDto } from '../../lib/api'
 
+interface WorkerDashboardMetric {
+  label: string
+  value: string
+}
+
+interface FulfillmentStageItem {
+  code: string
+  name: string
+  description: string
+}
+
+const workerDashboard = ref<WorkerDashboardMetric[]>([])
+const fulfillmentStages = ref<FulfillmentStageItem[]>([])
+const noticeText = ref('代办员端已支持接单、现场打卡、履约上传与完结申请，当前聚焦首版交易闭环。')
+
+/**
+ * 将系统参数数组转换成按 settingKey 索引的 Map。
+ *
+ * @param {PublicSystemSettingDto[]} settings 系统参数列表。
+ * @returns {Map<string, string>} 以参数键为索引的值映射。
+ */
+function createSettingMap(settings: PublicSystemSettingDto[]) {
+  return new Map(settings.map(setting => [setting.settingKey, setting.valueText]))
+}
+
+/**
+ * 将公开字典条目映射为代办员端履约阶段展示对象。
+ *
+ * @param {PublicDictionaryItemDto} item 字典条目。
+ * @returns {FulfillmentStageItem} 履约阶段对象。
+ */
+function mapStage(item: PublicDictionaryItemDto): FulfillmentStageItem {
+  const extra = item.extraJson as { description?: string } | null
+
+  return {
+    code: item.value,
+    name: item.label,
+    description: extra?.description ?? '',
+  }
+}
+
+/**
+ * 拉取代办员首页所需的公开配置与履约阶段字典。
+ *
+ * @returns {Promise<void>} 数据加载完成后的 Promise。
+ */
+async function loadDashboardData() {
+  const [settingResponse, dictionaryResponse] = await Promise.all([
+    fetchPublicSystemSettings({ scope: 'worker-miniapp', groupCode: 'dashboard' }),
+    fetchPublicDictionary('fulfillment-stage', { scope: 'worker-miniapp' }),
+  ])
+
+  const settingMap = createSettingMap(settingResponse.items)
+  noticeText.value = settingMap.get('notice_text') ?? noticeText.value
+
+  const metricsJson = settingMap.get('metrics')
+  if (metricsJson) {
+    workerDashboard.value = JSON.parse(metricsJson) as WorkerDashboardMetric[]
+  }
+
+  fulfillmentStages.value = dictionaryResponse.item.items.map(mapStage)
+}
+
+/**
+ * 页面挂载后初始化代办员首页所需的公开配置与字典数据。
+ *
+ * @returns {void} 无返回值。
+ */
+onMounted(() => {
+  void loadDashboardData()
+})
+
+/**
+ * 跳转到接单与履约页。
+ *
+ * @returns {void}
+ */
 function goToOrders() {
   uni.navigateTo({
     url: '/pages/orders/index',
@@ -12,10 +90,10 @@ function goToOrders() {
   <view class="page">
     <view class="hero">
       <text class="hero__title">代办员工作台</text>
-      <text class="hero__desc">围绕接单、到场、履约上传和异常上报组织首期流程。</text>
+      <text class="hero__desc">围绕接单、到场打卡、履约上传与完结申请组织首期履约流程。</text>
     </view>
 
-    <van-notice-bar left-icon="info-o" text="代办员端已接入 Vant Weapp，后续将补充接单、打卡、异常上报等表单流。" />
+    <van-notice-bar left-icon="info-o" :text="noticeText" />
 
     <van-grid :column-num="2" :border="false" gutter="12">
       <van-grid-item v-for="item in workerDashboard" :key="item.label">

@@ -5,6 +5,11 @@ import { fetchFinanceOverview, type FinanceOverviewDto } from '../lib/api'
 const loading = ref(false)
 const finance = ref<FinanceOverviewDto | null>(null)
 
+/**
+ * 拉取财务概览数据，并维护页面级 loading 状态。
+ *
+ * @returns {Promise<void>} 数据加载完成后的 Promise。
+ */
 async function loadFinanceOverview() {
   loading.value = true
 
@@ -16,7 +21,14 @@ async function loadFinanceOverview() {
   }
 }
 
-onMounted(loadFinanceOverview)
+/**
+ * 页面挂载后初始化财务概览数据。
+ *
+ * @returns {void} 无返回值。
+ */
+onMounted(() => {
+  void loadFinanceOverview()
+})
 </script>
 
 <template>

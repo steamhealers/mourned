@@ -1,16 +1,66 @@
 <script setup lang="ts">
 import { Calendar, DataAnalysis, Files, UserFilled } from '@element-plus/icons-vue'
-import { adminHighlights, serviceCatalog } from '@mourned/domain'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAdminAccess } from '../lib/access'
+import { fetchPublicSystemSettings, fetchServices, type PublicSystemSettingDto, type ServiceItemDto } from '../lib/api'
 
 const router = useRouter()
+const { hasPermission } = useAdminAccess()
 
-const focusTracks = [
-  '订单调度与客服仲裁',
-  '代办员审核与分区管理',
-  '纪念馆内容审核',
-  '财务结算与退款处理',
-]
+interface DashboardMetric {
+  label: string
+  value: string
+}
+
+const focusTracks = ref<string[]>([])
+const adminHighlights = ref<DashboardMetric[]>([])
+const serviceCatalog = ref<ServiceItemDto[]>([])
+
+/**
+ * 将系统参数数组转换成按 settingKey 索引的 Map，便于按键读取仪表盘配置。
+ *
+ * @param {PublicSystemSettingDto[]} settings 系统参数列表。
+ * @returns {Map<string, string>} 以参数键为索引的值映射。
+ */
+function createSettingMap(settings: PublicSystemSettingDto[]) {
+  return new Map(settings.map(setting => [setting.settingKey, setting.valueText]))
+}
+
+/**
+ * 并行加载仪表盘所需的服务目录与后台公开配置。
+ *
+ * @returns {Promise<void>} 数据加载完成后的 Promise。
+ */
+async function loadDashboardData() {
+  const [serviceResponse, settingResponse] = await Promise.all([
+    fetchServices(),
+    fetchPublicSystemSettings({ scope: 'admin-web', groupCode: 'dashboard' }),
+  ])
+
+  serviceCatalog.value = serviceResponse.items
+
+  const settingMap = createSettingMap(settingResponse.items)
+  const highlightsJson = settingMap.get('highlights')
+  const focusTracksJson = settingMap.get('focus_tracks')
+
+  if (highlightsJson) {
+    adminHighlights.value = JSON.parse(highlightsJson) as DashboardMetric[]
+  }
+
+  if (focusTracksJson) {
+    focusTracks.value = JSON.parse(focusTracksJson) as string[]
+  }
+}
+
+/**
+ * 页面挂载后初始化仪表盘展示数据。
+ *
+ * @returns {void} 无返回值。
+ */
+onMounted(() => {
+  void loadDashboardData()
+})
 </script>
 
 <template>
@@ -29,9 +79,9 @@ const focusTracks = [
           </template>
           <p class="hero-copy">先覆盖订单调度、代办员审核、内容审核和财务结算四条主线。</p>
           <div class="hero-actions">
-            <el-button type="primary" @click="router.push('/orders')">查看订单中心</el-button>
-            <el-button plain @click="router.push('/workers')">查看代办员管理</el-button>
-            <el-button plain @click="router.push('/finance')">查看财务结算</el-button>
+            <el-button v-if="hasPermission('dashboard.jump.orders')" type="primary" @click="router.push('/orders')">查看订单中心</el-button>
+            <el-button v-if="hasPermission('dashboard.jump.workers')" plain @click="router.push('/workers')">查看代办员管理</el-button>
+            <el-button v-if="hasPermission('dashboard.jump.finance')" plain @click="router.push('/finance')">查看财务结算</el-button>
           </div>
         </el-card>
       </el-col>

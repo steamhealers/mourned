@@ -18,10 +18,12 @@
     "@mourned/domain": "workspace:*",
     "dotenv": "^16.6.1",
     "fastify": "^5.3.3",
+    "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.15.1",
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"
   }
